@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Simulador de Tonalidade | ABS Centro Estético Automotivo</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    :root{
+      --orange:#ff6a00;
+      --orange-dark:#e05a00;
+      --black:#141414;
+      --gray-700:#4a4a4a;
+      --gray-300:#e2e2e2;
+      --gray-100:#f4f4f4;
+      --white:#ffffff;
+    }
+    body{background:var(--gray-100);color:var(--black);font-family:'Segoe UI',system-ui,sans-serif;}
+    .app-header{background:var(--black);color:var(--white);padding:.9rem 1.5rem;}
+    .app-header .brand{font-weight:800;letter-spacing:.5px;font-size:1.25rem;}
+    .app-header .brand span{color:var(--orange);}
+    .btn-orange{background:var(--orange);border:none;color:#fff;font-weight:600;}
+    .btn-orange:hover{background:var(--orange-dark);color:#fff;}
+    .btn-outline-orange{border:2px solid var(--orange);color:var(--orange);font-weight:600;background:transparent;}
+    .btn-outline-orange:hover{background:var(--orange);color:#fff;}
+    .btn-check:checked + .btn-outline-orange{background:var(--orange);color:#fff;}
+    .selector-bar{background:var(--white);border-bottom:1px solid var(--gray-300);padding:.75rem 1.5rem;}
+    .pill-group .btn{border-radius:50px;padding:.55rem 1.3rem;}
+    .area-card{background:var(--white);border:1px solid var(--gray-300);border-radius:10px;overflow:hidden;display:flex;height:100%;}
+    .tone-stack{width:78px;flex:0 0 78px;display:flex;flex-direction:column;}
+    .tone-btn{border:none;flex:1;font-size:.72rem;font-weight:700;line-height:1.15;display:flex;align-items:center;justify-content:center;text-align:center;cursor:pointer;color:var(--black);transition:transform .08s ease, filter .15s ease;padding:.25rem;}
+    .tone-btn:hover{filter:brightness(.95);}
+    .tone-btn.active{background:var(--orange) !important;color:#fff;transform:scale(1.02);position:relative;z-index:1;box-shadow:inset 0 0 0 2px var(--orange-dark);}
+    .area-body{flex:1;display:flex;flex-direction:column;min-width:0;}
+    .area-title{background:var(--gray-700);color:#fff;font-weight:700;font-size:.9rem;padding:.55rem .9rem;}
+    .area-stage{flex:1;background:var(--gray-100);display:flex;align-items:center;justify-content:center;padding:0;min-height:180px;overflow:hidden;}
+    .area-stage svg{max-width:100%;max-height:100%;}
+    .area-photo{width:325px;object-fit:cover;display:block;transition:opacity .15s ease;}
+    .area-photo-missing{width:100%;height:100%;min-height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--gray-700);border:2px dashed var(--gray-300);text-align:center;padding:.75rem;}
+    .area-photo-missing i{font-size:1.6rem;opacity:.5;}
+    .area-photo-missing code{word-break:break-all;color:var(--orange-dark);}
+    .glass{transition:filter .2s ease;stroke:#8a8a8a;stroke-width:1;}
+    .viewer-3d-scene{width:100%;height:420px;display:flex;align-items:center;justify-content:center;perspective:1000px;background:var(--white);border:1px solid var(--gray-300);border-radius:14px;}
+    .cube{width:260px;height:150px;position:relative;transform-style:preserve-3d;transition:transform .05s linear;cursor:grab;}
+    .cube:active{cursor:grabbing;}
+    .cube-face{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:var(--white);border:1px solid var(--gray-300);border-radius:8px;backface-visibility:hidden;}
+    .cube-face svg{max-width:92%;max-height:92%;}
+    .face-front{transform:translateZ(130px);}
+    .face-back{transform:rotateY(180deg) translateZ(130px);}
+    .face-left{transform:rotateY(-90deg) translateZ(130px);}
+    .face-right{transform:rotateY(90deg) translateZ(130px);}
+    .controls-3d{display:flex;justify-content:center;gap:.5rem;margin-top:1rem;}
+    .controls-3d .btn{width:46px;height:46px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;}
+    .summary-card{background:var(--black);color:var(--white);border-radius:14px;}
+    .summary-row{display:flex;justify-content:space-between;padding:.35rem 0;border-bottom:1px solid rgba(255,255,255,.1);font-size:.92rem;}
+    .summary-row:last-child{border-bottom:none;}
+    .summary-row .val{color:var(--orange);font-weight:600;}
+    @media (max-width: 767px){
+      .tone-stack{width:64px;flex:0 0 64px;}
+      .tone-btn{font-size:.65rem;}
+      .area-stage{min-height:150px;}
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div class="brand"><img src="logo.png" style="width: 125px;">| Simulador de Tonalidade</small></div>
+    <button class="btn btn-orange btn-sm" id="btnNovaSimulacao"><i class="bi bi-arrow-repeat"></i> Nova Simulação</button>
+  </header>
+
+  <div class="selector-bar d-flex flex-wrap gap-3 justify-content-between align-items-center d-none">
+    <div class="btn-group pill-group" role="group" aria-label="Veículo">
+      <input type="radio" class="btn-check" name="vehicle" id="vehSedan" checked>
+      <label class="btn btn-outline-orange" for="vehSedan"><i class="bi bi-car-front"></i> Sedan</label>
+      <input type="radio" class="btn-check" name="vehicle" id="vehSuv">
+      <label class="btn btn-outline-orange" for="vehSuv"><i class="bi bi-truck-front"></i> SUV</label>
+    </div>
+    <div class="btn-group pill-group" role="group" aria-label="Modo de visualização">
+      <input type="radio" class="btn-check" name="mode" id="modeParts" checked>
+      <label class="btn btn-outline-orange" for="modeParts"><i class="bi bi-grid-3x3-gap"></i> Simulador de tonalidade</label>
+      <input type="radio" class="btn-check" name="mode" id="mode3d">
+      <label class="btn btn-outline-orange" for="mode3d"><i class="bi bi-badge-3d"></i> 3D</label>
+    </div>
+  </div>
+
+<main class="container-fluid p-3 p-lg-4">
+  <div class="row g-4">
+    <div class="col-lg-9">
+      <div id="viewerParts" class="row g-3"></div>
+
+      <div id="viewer3d" class="d-none">
+        <div class="viewer-3d-scene">area-stage
+          <div class="cube" id="cube3d">
+            <div class="cube-face face-front" data-angle="frente"></div>
+            <div class="cube-face face-back" data-angle="traseira"></div>
+            <div class="cube-face face-left" data-angle="esquerda"></div>
+            <div class="cube-face face-right" data-angle="direita"></div>
+          </div>
+        </div>
+        <div class="controls-3d">
+          <button class="btn btn-outline-dark" id="rot3dLeft"><i class="bi bi-arrow-counterclockwise"></i></button>
+          <button class="btn btn-outline-dark" id="zoomOut"><i class="bi bi-dash-lg"></i></button>
+          <button class="btn btn-orange" id="reset3d"><i class="bi bi-house"></i></button>
+          <button class="btn btn-outline-dark" id="zoomIn"><i class="bi bi-plus-lg"></i></button>
+          <button class="btn btn-outline-dark" id="rot3dRight"><i class="bi bi-arrow-clockwise"></i></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3">
+      <div class="summary-card p-3">
+        <h6 class="fw-bold mb-3"><i class="bi bi-clipboard-data"></i> Resumo da configuração</h6>
+        <div class="summary-row"><span>Veículo</span><span class="val" id="sumVehicle">Sedan</span></div>
+        <div class="summary-row"><span>Parabrisa</span><span class="val" id="sumWindshield">—</span></div>
+        <div class="summary-row"><span>Dianteiros</span><span class="val" id="sumFront">—</span></div>
+        <div class="summary-row"><span>Traseiros</span><span class="val" id="sumRear">—</span></div>
+        <div class="summary-row"><span>Vidro traseiro</span><span class="val" id="sumRearWindow">—</span></div>
+        <button class="btn btn-outline-light btn-sm w-100 mt-3" id="clearConfig"><i class="bi bi-trash3"></i> Limpar configuração</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+/* =========================================================
+   DADOS: VEÍCULOS
+   Cada ângulo retorna um SVG com os vidros marcados via
+   data-glass. Placeholder até entrarem as fotos reais.
+========================================================= */
+const vehicles = {
+  sedan: {
+    label: "Sedan",
+    body: "#d9d9d9",
+    angles: {
+      frente: `<svg viewBox="0 0 300 180"><path d="M40 150 Q40 90 90 80 L210 80 Q260 90 260 150 L260 165 L40 165 Z" fill="{{body}}" stroke="#333" stroke-width="2"/><rect data-glass="windshield" x="110" y="92" width="80" height="28" rx="4" class="glass"/><circle cx="70" cy="165" r="14" fill="#222"/><circle cx="230" cy="165" r="14" fill="#222"/></svg>`,
+      traseira: `<svg viewBox="0 0 300 180"><path d="M40 150 Q40 90 90 80 L210 80 Q260 90 260 150 L260 165 L40 165 Z" fill="{{body}}" stroke="#333" stroke-width="2"/><rect data-glass="rearWindow" x="110" y="92" width="80" height="28" rx="4" class="glass"/><circle cx="70" cy="165" r="14" fill="#222"/><circle cx="230" cy="165" r="14" fill="#222"/></svg>`,
+      esquerda: `<svg viewBox="0 0 400 170"><path d="M20 140 Q20 120 45 110 L80 75 Q100 60 140 60 L260 60 Q300 60 320 90 L370 110 Q385 118 385 140 L385 150 L20 150 Z" fill="{{body}}" stroke="#333" stroke-width="2"/><rect data-glass="frontLeft" x="255" y="72" width="70" height="34" rx="5" class="glass"/><rect data-glass="rearLeft" x="115" y="72" width="120" height="34" rx="5" class="glass"/><circle cx="90" cy="150" r="16" fill="#222"/><circle cx="320" cy="150" r="16" fill="#222"/></svg>`,
+      direita: `<svg viewBox="0 0 400 170"><path d="M15 140 Q15 118 30 110 L80 90 Q100 60 140 60 L260 60 Q300 60 320 75 L355 110 Q380 120 380 140 L380 150 L15 150 Z" fill="{{body}}" stroke="#333" stroke-width="2"/><rect data-glass="frontRight" x="75" y="72" width="70" height="34" rx="5" class="glass"/><rect data-glass="rearRight" x="165" y="72" width="120" height="34" rx="5" class="glass"/><circle cx="90" cy="150" r="16" fill="#222"/><circle cx="320" cy="150" r="16" fill="#222"/></svg>`
+    }
+  },
+  suv: {
+    label: "SUV",
+    body: "#c9c9c9",
+    angles: {
+      frente: `<svg viewBox="0 0 300 200"><path d="M35 170 Q35 90 85 75 L215 75 Q265 90 265 170 L265 185 L35 185 Z" fill="{{body}}" stroke="#333" stroke-width="2"/><rect data-glass="windshield" x="100" y="88" width="100" height="34" rx="4" class="glass"/><circle cx="70" cy="185" r="16" fill="#222"/><circle cx="230" cy="185" r="16" fill="#222"/></svg>`,
+      traseira: `<svg viewBox="0 0 300 200"><path d="M35 170 Q35 90 85 75 L215 75 Q265 90 265 170 L265 185 L35 185 Z" fill="{{body}}" stroke="#333" stroke-width="2"/><rect data-glass="rearWindow" x="100" y="88" width="100" height="34" rx="4" class="glass"/><circle cx="70" cy="185" r="16" fill="#222"/><circle cx="230" cy="185" r="16" fill="#222"/></svg>`,
+      esquerda: `<svg viewBox="0 0 400 190"><path d="M15 160 Q15 130 40 120 L70 80 Q90 55 135 55 L265 55 Q310 55 330 80 L365 120 Q390 128 390 160 L390 170 L15 170 Z" fill="{{body}}" stroke="#333" stroke-width="2"/><rect data-glass="frontLeft" x="260" y="66" width="75" height="42" rx="5" class="glass"/><rect data-glass="rearLeft" x="110" y="66" width="130" height="42" rx="5" class="glass"/><circle cx="90" cy="170" r="18" fill="#222"/><circle cx="320" cy="170" r="18" fill="#222"/></svg>`,
+      direita: `<svg viewBox="0 0 400 190"><path d="M10 160 Q10 128 35 120 L70 80 Q90 55 135 55 L265 55 Q310 55 330 80 L360 120 Q385 130 385 160 L385 170 L10 170 Z" fill="{{body}}" stroke="#333" stroke-width="2"/><rect data-glass="frontRight" x="65" y="66" width="75" height="42" rx="5" class="glass"/><rect data-glass="rearRight" x="160" y="66" width="130" height="42" rx="5" class="glass"/><circle cx="90" cy="170" r="18" fill="#222"/><circle cx="320" cy="170" r="18" fill="#222"/></svg>`
+    }
+  }
+};
+
+/* DADOS: PELÍCULAS (nomenclatura de mercado / CONTRAN 989/2022) */
+const films = {
+  g70blue: { name: "G70 BLUE", color: "#cfe6f5", opacity: .18 },
+  g70fume: { name: "G70 FUME", color: "#c9c9c9", opacity: .20 },
+  g50:     { name: "G50",      color: "#a8a8a8", opacity: .35 },
+  g35:     { name: "G35",      color: "#3a3a3a", opacity: .55 },
+  g20:     { name: "G20",      color: "#1c1c1c", opacity: .75 },
+  g5:      { name: "G5",       color: "#0a0a0a", opacity: .90 }
+};
+const toneOrder = ["g70blue","g70fume","g50","g35","g20","g5"];
+
+/* Grupos de área — cada card do simulador é uma foto fixa do
+   veículo para aquele ângulo, trocada conforme a tonalidade clicada. */
+const areaGroups = [
+  { key: "windshield", label: "Para-brisa Frontal", parts: ["windshield"], folder: "parabrisa" },
+  { key: "rearWindow", label: "Vidro Traseiro",      parts: ["rearWindow"], folder: "vidro-traseiro" },
+  { key: "frontSides", label: "Laterais Dianteira",  parts: ["frontLeft","frontRight"], folder: "laterais-dianteira" },
+  { key: "rearSides",  label: "Laterais Traseira",   parts: ["rearLeft","rearRight"],  folder: "laterais-traseira" }
+];
+
+/* =========================================================
+   IMAGENS POR TONALIDADE
+   Uma foto real para cada combinação veículo + área + tonalidade.
+   Convenção de pastas/arquivos (ajuste os nomes se preferir outra):
+     imagens/<veiculo>/<pasta-da-area>/base.jpg   -> estado inicial (sem película)
+     imagens/<veiculo>/<pasta-da-area>/<tom>.jpg  -> ex: g5.jpg, g20.jpg...
+   Basta jogar os arquivos nesses caminhos que tudo passa a funcionar
+   sem mexer em nada do JS.
+========================================================= */
+function getAreaImagePath(vehicleKey, areaKey, toneKey){
+  const group = areaGroups.find(g => g.key === areaKey);
+  const file = toneKey || "base";
+  return `imagens/${vehicleKey}/${group.folder}/${file}.png`;
+}
+
+/* ESTADO ATUAL */
+let currentConfiguration = {
+   vehicle: "sedan",
+  windshield: "g70blue",
+  frontLeft: "g70blue",
+  frontRight: "g70blue",
+  rearLeft: "g70blue",
+  rearRight: "g70blue",
+  rearWindow: "g70blue"
+};
+let currentMode = "parts";
+
+/* =========================================================
+   MÓDULO vehicleViewer
+   Isola a renderização do veículo. Hoje usa SVG 2D; no
+   futuro cada area-stage pode receber uma <img> com foto
+   real do carro no lugar do SVG, e o modo 3D pode virar
+   Three.js — sem mudar o resto do app.
+========================================================= */
+const vehicleViewer = {
+  getAngleSVG(vehicleKey, angle){
+    const v = vehicles[vehicleKey];
+    return v.angles[angle].replace("{{body}}", v.body);
+  },
+  /* Usado só no modo 3D (ainda em SVG com os vidros marcados). */
+  paintGlasses(container){
+    container.querySelectorAll(".glass").forEach(g => {
+      const part = g.dataset.glass;
+      const filmKey = currentConfiguration[part];
+      if (filmKey && films[filmKey]) {
+        g.setAttribute("fill", films[filmKey].color);
+        g.setAttribute("fill-opacity", films[filmKey].opacity);
+      } else {
+        g.setAttribute("fill", "#bcd9e8");
+        g.setAttribute("fill-opacity", 0.5);
+      }
+    });
+  },
+  /* Monta o <img> de uma área e trata o caso da foto ainda não existir
+     (mostra um placeholder tracejado com o caminho esperado, para
+     facilitar saber onde salvar cada arquivo). */
+  renderStageImage(stageEl, vehicleKey, areaKey, toneKey){
+    const path = getAreaImagePath(vehicleKey, areaKey, toneKey);
+    stageEl.innerHTML = `<img src="${path}" alt="" class="area-photo">`;
+    const img = stageEl.querySelector("img");
+    img.onerror = () => {
+      stageEl.innerHTML = `
+        <div class="area-photo-missing">
+          <i class="bi bi-image"></i>
+          <div class="small mt-1">Imagem ainda não adicionada</div>
+          <code class="small">${path}</code>
+        </div>`;
+    };
+  },
+  renderAreaCards(){
+    const wrap = document.getElementById("viewerParts");
+    wrap.innerHTML = "";
+    areaGroups.forEach(group => {
+      const activeTone = currentConfiguration[group.parts[0]];
+      const col = document.createElement("div");
+      col.className = "col-md-6";
+      col.innerHTML = `
+        <div class="area-card">
+          <div class="tone-stack" data-group="${group.key}">
+            ${toneOrder.map(key => `
+              <button type="button" class="tone-btn ${activeTone === key ? 'active' : ''}"
+                      data-tone="${key}" style="background:${films[key].color}">
+                ${films[key].name}
+              </button>`).join("")}
+          </div>
+          <div class="area-body">
+            <div class="area-title">${group.label}</div>
+            <div class="area-stage" data-area-holder="${group.key}"></div>
+          </div>
+        </div>`;
+      wrap.appendChild(col);
+    });
+    this.refreshAllStages();
+    this.bindToneButtons();
+  },
+  refreshAllStages(){
+    areaGroups.forEach(group => {
+      const stage = document.querySelector(`[data-area-holder="${group.key}"]`);
+      const activeTone = currentConfiguration[group.parts[0]];
+      this.renderStageImage(stage, currentConfiguration.vehicle, group.key, activeTone);
+    });
+  },
+  bindToneButtons(){
+    document.querySelectorAll(".tone-stack").forEach(stackEl => {
+      const group = areaGroups.find(g => g.key === stackEl.dataset.group);
+      stackEl.querySelectorAll(".tone-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          group.parts.forEach(p => currentConfiguration[p] = btn.dataset.tone);
+          this.renderAreaCards();
+          updateSummary();
+        });
+      });
+    });
+  },
+  renderCubeFaces(){
+    const map = { frente: ".face-front", traseira: ".face-back", esquerda: ".face-left", direita: ".face-right" };
+    Object.keys(map).forEach(angle => {
+      const face = document.querySelector(map[angle]);
+      face.innerHTML = this.getAngleSVG(currentConfiguration.vehicle, angle);
+      this.paintGlasses(face);
+    });
+  }
+};
+
+/* RESUMO */
+function updateSummary(){
+  document.getElementById("sumVehicle").textContent = vehicles[currentConfiguration.vehicle].label;
+  const set = (id, part) => {
+    const f = films[currentConfiguration[part]];
+    document.getElementById(id).textContent = f ? f.name : "—";
+  };
+  set("sumWindshield", "windshield");
+  set("sumRearWindow", "rearWindow");
+  const front = currentConfiguration.frontLeft || currentConfiguration.frontRight;
+  const rear = currentConfiguration.rearLeft || currentConfiguration.rearRight;
+  document.getElementById("sumFront").textContent = front ? films[front].name : "—";
+  document.getElementById("sumRear").textContent = rear ? films[rear].name : "—";
+}
+
+/* REFRESH GERAL DO VIEWER (conforme o modo ativo) */
+function refreshViewer(){
+  if (currentMode === "parts") vehicleViewer.renderAreaCards();
+  else vehicleViewer.renderCubeFaces();
+}
+
+/* TROCA DE VEÍCULO */
+document.getElementById("vehSedan").addEventListener("change", () => { currentConfiguration.vehicle = "sedan"; refreshViewer(); });
+document.getElementById("vehSuv").addEventListener("change", () => { currentConfiguration.vehicle = "suv"; refreshViewer(); });
+
+/* TROCA DE MODO */
+document.getElementById("modeParts").addEventListener("change", () => switchMode("parts"));
+document.getElementById("mode3d").addEventListener("change", () => switchMode("3d"));
+function switchMode(mode){
+  currentMode = mode;
+  const parts = mode === "parts";
+  document.getElementById("viewerParts").classList.toggle("d-none", !parts);
+  document.getElementById("viewer3d").classList.toggle("d-none", parts);
+  refreshViewer();
+}
+
+/* LIMPAR CONFIGURAÇÃO */
+document.getElementById("clearConfig").onclick = () => {
+  ["windshield","frontLeft","frontRight","rearLeft","rearRight","rearWindow"].forEach(p => currentConfiguration[p] = 'g70blue');
+  refreshViewer();
+  updateSummary();
+};
+document.getElementById("btnNovaSimulacao").onclick = () => document.getElementById("clearConfig").click();
+
+/* CONTROLES 3D (placeholder — pronto para Three.js futuramente) */
+let rotY = -25, zoom = 1;
+const cube = document.getElementById("cube3d");
+function applyCubeTransform(){ cube.style.transform = `rotateY(${rotY}deg) scale(${zoom})`; }
+document.getElementById("rot3dLeft").onclick  = () => { rotY -= 45; applyCubeTransform(); };
+document.getElementById("rot3dRight").onclick = () => { rotY += 45; applyCubeTransform(); };
+document.getElementById("zoomIn").onclick  = () => { zoom = Math.min(1.6, zoom + .15); applyCubeTransform(); };
+document.getElementById("zoomOut").onclick = () => { zoom = Math.max(.6, zoom - .15); applyCubeTransform(); };
+document.getElementById("reset3d").onclick = () => { rotY = -25; zoom = 1; applyCubeTransform(); };
+
+let dragging = false, lastX = 0;
+cube.addEventListener("mousedown", (e) => { dragging = true; lastX = e.clientX; });
+window.addEventListener("mouseup", () => dragging = false);
+window.addEventListener("mousemove", (e) => {
+  if (!dragging) return;
+  rotY += (e.clientX - lastX) * 0.4;
+  lastX = e.clientX;
+  applyCubeTransform();
+});
+
+/* INIT */
+vehicleViewer.renderAreaCards();
+vehicleViewer.renderCubeFaces();
+applyCubeTransform();
+updateSummary();
+</script>
+</body>
+</html>
